@@ -4,6 +4,7 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
 from pymongo import MongoClient
+import logging
 
 app = Flask(__name__)
 
@@ -12,6 +13,9 @@ static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 # Channel Secret
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
+
+# 设置日志
+logging.basicConfig(level=logging.INFO)
 
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
@@ -102,6 +106,7 @@ def handle_postback(event):
     if data.startswith('region='):
         region = data.split('=')[1]
         user_region[user_id] = region
+        logging.info(f"User {user_id} selected region: {region}")
 
         reply_message = TemplateSendMessage(
             alt_text='請選擇類別',
@@ -119,16 +124,19 @@ def handle_postback(event):
     
     elif data in ['美食', '點心', '景點']:
         user_category[user_id] = data
+        logging.info(f"User {user_id} selected category: {data}")
 
         # 获取用户选择的区域和类别
         selected_region = user_region.get(user_id)
         selected_category = user_category.get(user_id)
+        logging.info(f"Selected region: {selected_region}, selected category: {selected_category}")
 
         if selected_region and selected_category:
             # 根据用户的选择进行下一步处理，例如查询数据库或者调用API
             db = get_database(selected_category)
             collection = db[selected_region]
-            random_items = collection.aggregate([{'$sample': {'size': 3}}])
+            random_items = list(collection.aggregate([{'$sample': {'size': 3}}]))
+            logging.info(f"Random items: {random_items}")
             
             # 将随机获取的项目格式化为符合 create_flex_message 函数预期的格式
             items = [
@@ -142,9 +150,12 @@ def handle_postback(event):
                 for item in random_items
             ]
             
-            # 创建并发送 Flex 消息
-            flex_message = create_flex_message(items)
-            line_bot_api.reply_message(event.reply_token, flex_message)
+            if items:
+                # 创建并发送 Flex 消息
+                flex_message = create_flex_message(items)
+                line_bot_api.reply_message(event.reply_token, flex_message)
+            else:
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text="很抱歉，當前沒有找到符合條件的資料。"))
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
