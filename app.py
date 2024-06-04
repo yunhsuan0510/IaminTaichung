@@ -32,9 +32,8 @@ user_region = {}
 
 # 定義台中市區域列表
 taichung_regions = [
-    '中區', '東區', '西區', '南區', '北區', '西屯區', '南屯區', '北屯區', '豐原區', '大里區', '太平區', '清水區', '沙鹿區',
-    '大甲區', '東勢區', '梧棲區', '烏日區', '神岡區', '大肚區', '大雅區', '后里區', '霧峰區', '潭子區', '龍井區', '外埔區',
-    '和平區', '石岡區', '大安區', '新社區'
+    '南區', '北區', '中區', '西區', '東區', '北屯區', '大里區', '烏日區',
+    '南屯區', '西屯區', '大雅區', '豐原區', '潭子區'
 ]
 
 def create_quick_reply_buttons():
@@ -68,9 +67,9 @@ def handle_postback(event):
         region = data.split('=')[1]
         user_region[user_id] = region
 
-        reply_message = TextSendMessage(
-            text='請選擇服務項目',
-             template=ButtonsTemplate(
+        reply_message = TemplateSendMessage(
+            alt_text='請選擇類別',
+            template=ButtonsTemplate(
                 title='請選擇服務項目',
                 text='請選擇您要找的是美食、點心還是景點',
                 actions=[
