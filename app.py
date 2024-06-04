@@ -60,11 +60,11 @@ def get_random_items_from_db(category, region):
 def create_flex_message(data):
     bubbles = []
     for item in data:
-        title = item.get("title", "無標題")
-        phone = item.get("phone", "無電話")
-        address = item.get("address", "無地址")
-        business_hours = item.get("business_hours", "無營業時間")
-        google_maps_link = item.get("google_maps_link", "https://maps.google.com")
+        title = item.get("Title", "無標題")
+        phone = item.get("Phone", "無電話")
+        address = item.get("Address", "無地址")
+        business_hours = item.get("Business Hours", "無營業時間")
+        google_maps_link = item.get("Google Maps Link", "https://maps.google.com")
         
         bubble = BubbleContainer(
             direction='ltr',
