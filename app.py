@@ -81,8 +81,8 @@ def create_flex_message(data):
                     TextComponent(text=title, weight='bold', size='lg'),
                     BoxComponent(layout='vertical', margin='lg', spacing='sm', contents=[
                         TextComponent(text=f"電話：{phone}", action=URIAction(uri=f"tel:{phone}")),
-                        TextComponent(text=f"地址：{address}"),
-                        TextComponent(text=f"營業時間：{business_hours}"),
+                        TextComponent(text=f"地址：{address}", wrap=True),
+                        TextComponent(text=f"營業時間：{business_hours}", wrap=True),
                         ButtonComponent(
                             style='link',
                             height='sm',
