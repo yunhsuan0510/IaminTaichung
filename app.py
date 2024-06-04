@@ -3,6 +3,7 @@ import os
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
+from pymongo import MongoClient
 
 app = Flask(__name__)
 
@@ -27,8 +28,9 @@ def callback():
         abort(400)
     return 'OK'
 
-# 全局變數來保存用戶的區域選擇
+# 全局變數來保存用戶的區域和類別選擇
 user_region = {}
+user_category = {}
 
 # 定義台中市區域列表
 taichung_regions = [
@@ -43,30 +45,13 @@ def create_quick_reply_buttons():
     ]
     return QuickReply(items=items)
 
-# 模擬資料庫中的資料
-sample_data = [
-    {
-        "title": "北澤壽喜燒-大里店",
-        "phone": "04-24821129",
-        "address": "臺中市大里區德芳南路470號",
-        "business_hours": "週一至週五 / 11:30-22:00 最後收客時間21:00，週六日、例假日 / 11:00-22:30 最後收客時間21:30",
-        "google_maps_link": "https://maps.google.com/maps?daddr=24.10463,120.68314&hl=zh-TW"
-    },
-    {
-        "title": "林記水餃館",
-        "phone": "04-25889186",
-        "address": "臺中市東勢區中山路50號",
-        "business_hours": "No Business Hours",
-        "google_maps_link": "https://maps.google.com/maps?daddr=24.25732,120.83006&hl=zh-TW"
-    },
-    {
-        "title": "麗寶樂園",
-        "phone": "04-25582459",
-        "address": "臺中市后里區福容路8號(臺中后里外埔交流道下)",
-        "business_hours": "平日營業時間: 09:30~17:00 / 假日為 夜間營運 營業時間: 09:30~20:00",
-        "google_maps_link": "https://maps.google.com/maps?daddr=24.32377,120.69876&hl=zh-TW"
-    }
-]
+def get_database(dbname):
+    # 提供 mongodb atlas url 以使用 pymongo 將 python 連接到 mongodb
+    CONNECTION_STRING = "mongodb+srv://r0980040:nuToa9PunCm65tgH@cluster0.wpk1rjx.mongodb.net/traveling"
+    # 使用 MongoClient 創建連接
+    client = MongoClient(CONNECTION_STRING)
+    # 返回數據庫實例
+    return client[dbname]
 
 def create_flex_message(data):
     bubbles = []
@@ -105,15 +90,6 @@ def handle_message(event):
             quick_reply=create_quick_reply_buttons()
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
-    elif user_input in ["美食", "點心", "景點"]:
-        region = user_region.get(user_id)
-        if region:
-            # 模擬從資料庫中抓取資料
-            reply_message = create_flex_message(sample_data)
-            line_bot_api.reply_message(event.reply_token, reply_message)
-        else:
-            reply_message = TextSendMessage(text="請先選擇您的所在區域")
-            line_bot_api.reply_message(event.reply_token, reply_message)
     else:
         reply_message = TextSendMessage(text="請輸入 '開始' 來選擇您的所在區域")
         line_bot_api.reply_message(event.reply_token, reply_message)
@@ -140,6 +116,35 @@ def handle_postback(event):
             )
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
+    
+    elif data in ['美食', '點心', '景點']:
+        user_category[user_id] = data
+
+        # 获取用户选择的区域和类别
+        selected_region = user_region.get(user_id)
+        selected_category = user_category.get(user_id)
+
+        if selected_region and selected_category:
+            # 根据用户的选择进行下一步处理，例如查询数据库或者调用API
+            db = get_database(selected_category)
+            collection = db[selected_region]
+            random_items = collection.aggregate([{'$sample': {'size': 3}}])
+            
+            # 将随机获取的项目格式化为符合 create_flex_message 函数预期的格式
+            items = [
+                {
+                    "title": item.get("title", "無標題"),
+                    "phone": item.get("phone", "無電話"),
+                    "address": item.get("address", "無地址"),
+                    "business_hours": item.get("business_hours", "無營業時間"),
+                    "google_maps_link": item.get("google_maps_link", "https://www.google.com/maps")
+                }
+                for item in random_items
+            ]
+            
+            # 创建并发送 Flex 消息
+            flex_message = create_flex_message(items)
+            line_bot_api.reply_message(event.reply_token, flex_message)
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
