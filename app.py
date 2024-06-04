@@ -60,20 +60,26 @@ def get_random_items_from_db(category, region):
 def create_flex_message(data):
     bubbles = []
     for item in data:
+        title = item.get("title", "無標題")
+        phone = item.get("phone", "無電話")
+        address = item.get("address", "無地址")
+        business_hours = item.get("business_hours", "無營業時間")
+        google_maps_link = item.get("google_maps_link", "https://maps.google.com")
+        
         bubble = BubbleContainer(
             direction='ltr',
             body=BoxComponent(
                 layout='vertical',
                 contents=[
-                    TextComponent(text=item["title"], weight='bold', size='lg'),
+                    TextComponent(text=title, weight='bold', size='lg'),
                     BoxComponent(layout='vertical', margin='lg', spacing='sm', contents=[
-                        TextComponent(text=f"電話：{item['phone']}"),
-                        TextComponent(text=f"地址：{item['address']}"),
-                        TextComponent(text=f"營業時間：{item['business_hours']}"),
+                        TextComponent(text=f"電話：{phone}"),
+                        TextComponent(text=f"地址：{address}"),
+                        TextComponent(text=f"營業時間：{business_hours}"),
                         ButtonComponent(
                             style='link',
                             height='sm',
-                            action=URIAction(label='查看地圖', uri=item['google_maps_link'])
+                            action=URIAction(label='查看地圖', uri=google_maps_link)
                         )
                     ])
                 ]
