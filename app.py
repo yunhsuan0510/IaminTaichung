@@ -221,9 +221,9 @@ def handle_rating(user_id, title, rating):
 
         if item:
             # 計算新的評分
-            new_count = item.get('Count', 1) + 1
+            new_count = int(item.get('Count', 1)) + 1
             current_star = item.get('Star', 0.0)
-            new_star = (current_star * item.get('Count', 1) + float(rating)) / new_count
+            new_star = (current_star * int(item.get('Count', 1)) + float(rating)) / new_count
 
             # 更新數據庫中的評分和計數
             collection.update_one(
