@@ -1,6 +1,6 @@
 from flask import Flask, request, abort
 import os
-from pymongo import MongoClient, UpdateOne
+from pymongo import MongoClient
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
@@ -52,12 +52,12 @@ def get_database(dbname):
     client = MongoClient(CONNECTION_STRING)
     return client[dbname]
 
-# 從資料庫中獲取隨機的項目
-def get_random_items_from_db(category, region):
+# 從資料庫中獲取前三高評分的項目
+def get_top_rated_items_from_db(category, region):
     db = get_database(category)
     collection = db[region]
-    random_items = collection.aggregate([{'$sample': {'size': 3}}])
-    return list(random_items)
+    top_items = collection.find().sort('Star', -1).limit(3)
+    return list(top_items)
 
 def create_flex_message(data):
     bubbles = []
@@ -149,39 +149,6 @@ def create_flex_message(data):
 
     return FlexSendMessage(alt_text="資料庫查詢結果", contents=CarouselContainer(contents=bubbles))
 
-def get_weather_info(region):
-    url = f"https://weather.yam.com/{region}/臺中"
-    response = requests.get(url)
-    if response.status_code == 200:
-        html_content = response.text
-        soup = BeautifulSoup(html_content, 'html.parser')
-        weather_info = {}
-
-        img_tag = soup.find('div', class_='Wpic').find('img')
-        if img_tag:
-            img_url = img_tag['src']
-            full_img_url = requests.compat.urljoin(url, img_url)
-            weather_info['img'] = full_img_url
-        else:
-            print('未找到圖片標籤')
-
-        detail_section = soup.find('div', class_='detail')
-        if detail_section:
-            for p in detail_section.find_all('p'):
-                text = p.text.strip()
-                if "體感溫度" in text:
-                    weather_info['feels_like'] = text.split(":")[1].strip()
-                elif "降雨機率" in text:
-                    weather_info['rain_probability'] = text.split(":")[1].strip()
-                elif "紫外線" in text:
-                    weather_info['uv_index'] = text.split(":")[1].strip()
-                elif "空氣品質" in text:
-                    weather_info['air_quality'] = text.split(":")[1].strip()
-        return weather_info
-    else:
-        print(f"Failed to retrieve the page. Status code: {response.status_code}")
-        return None
-
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
@@ -193,51 +160,35 @@ def handle_message(event):
             quick_reply=create_quick_reply_buttons()
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
+    elif user_input == "推薦":
+        reply_message = TemplateSendMessage(
+            alt_text='請選擇類別',
+            template=ButtonsTemplate(
+                title='請選擇服務項目',
+                text='請選擇您要找的是美食、點心還是景點',
+                actions=[
+                    MessageAction(label='美食', text='推薦美食'),
+                    MessageAction(label='點心', text='推薦點心'),
+                    MessageAction(label='景點', text='推薦景點')
+                ]
+            )
+        )
+        line_bot_api.reply_message(event.reply_token, reply_message)
+    elif user_input.startswith("推薦"):
+        category = user_input[2:]
+        user_category[user_id] = category
+        reply_message = TextSendMessage(
+            text='請選擇您的所在區域',
+            quick_reply=create_quick_reply_buttons()
+        )
+        line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
         user_category[user_id] = user_input
         if region:
-            if user_input == "景點":
-                # 獲取天氣資訊
-                weather_info = get_weather_info(region)
-                if weather_info:
-                    flex_message = FlexSendMessage(
-                        alt_text="天氣資訊",
-                        contents={
-                            "type": "bubble",
-                            "hero": {
-                                "type": "image",
-                                "url": weather_info.get("img"),
-                                "size": "full",
-                                "aspect_ratio": "16:9",
-                                "aspect_mode": "cover"
-                            },
-                            "body": {
-                                "type": "box",
-                                "layout": "vertical",
-                                "contents": [
-                                    {"type": "text", "text": f"地區: {region}", "weight": "bold", "size": "lg"},
-                                    {"type": "text", "text": f"體感溫度: {weather_info.get('feels_like', 'N/A')}", "wrap": True},
-                                    {"type": "text", "text": f"降雨機率: {weather_info.get('rain_probability', 'N/A')}", "wrap": True},
-                                    {"type": "text", "text": f"紫外線: {weather_info.get('uv_index', 'N/A')}", "wrap": True},
-                                    {"type": "text", "text": f"空氣品質: {weather_info.get('air_quality', 'N/A')}", "wrap": True}
-                                ]
-                            }
-                        }
-                    )
-                    line_bot_api.reply_message(event.reply_token, flex_message)
-                    # 景點推薦的 Flex Message
-                    items = get_random_items_from_db(user_input, region)
-                    spots_flex_message = create_flex_message(items)
-                    line_bot_api.push_message(user_id, spots_flex_message)
-                else:
-                    reply_message = TextSendMessage(text="無法獲取天氣資訊")
-                    line_bot_api.reply_message(event.reply_token, reply_message)
-            else:
-                # 從資料庫中獲取資料
-                items = get_random_items_from_db(user_input, region)
-                reply_message = create_flex_message(items)
-                line_bot_api.reply_message(event.reply_token, reply_message)
+            items = get_top_rated_items_from_db(user_input, region)
+            reply_message = create_flex_message(items)
+            line_bot_api.reply_message(event.reply_token, reply_message)
         else:
             reply_message = TextSendMessage(text="請先選擇您的所在區域")
             line_bot_api.reply_message(event.reply_token, reply_message)
@@ -253,21 +204,25 @@ def handle_postback(event):
     if data.startswith('region='):
         region = data.split('=')[1]
         user_region[user_id] = region
-        
-        reply_message = TemplateSendMessage(
-            alt_text='請選擇類別',
-            template=ButtonsTemplate(
-                title='請選擇服務項目',
-                text='請選擇您要找的是美食、點心還是景點',
-                actions=[
-                    MessageAction(label='美食', text='美食'),
-                    MessageAction(label='點心', text='點心'),
-                    MessageAction(label='景點', text='景點')
-                ]
-            )
-        )
-        line_bot_api.reply_message(event.reply_token, reply_message)
 
+        category = user_category.get(user_id)
+        if category:
+            items = get_top_rated_items_from_db(category, region)
+            reply_message = create_flex_message(items)
+        else:
+            reply_message = TemplateSendMessage(
+                alt_text='請選擇類別',
+                template=ButtonsTemplate(
+                    title='請選擇服務項目',
+                    text='請選擇您要找的是美食、點心還是景點',
+                    actions=[
+                        MessageAction(label='美食', text='推薦美食'),
+                        MessageAction(label='點心', text='推薦點心'),
+                        MessageAction(label='景點', text='推薦景點')
+                    ]
+                )
+            )
+        line_bot_api.reply_message(event.reply_token, reply_message)
     elif data.startswith('rating='):
         rating = data.split('&')[0].split('=')[1]
         title = data.split('&')[1].split('=')[1]
@@ -275,9 +230,8 @@ def handle_postback(event):
         handle_rating(user_id, title, rating)
         reply_message = TextSendMessage(text=f"感謝您的評分！您給了 {title} {rating} 分。")
         line_bot_api.reply_message(event.reply_token, reply_message)
-        
-def handle_rating(user_id, title, rating):
 
+def handle_rating(user_id, title, rating):
     # 獲取用戶選擇的分類和區域
     category = user_category.get(user_id)
     region = user_region.get(user_id)
@@ -288,9 +242,7 @@ def handle_rating(user_id, title, rating):
     collection = db[region]
     
     if category and region:
-
         item = collection.find_one({"Title": title})
-
         if item:
             # 確保 Count 是整數
             count = item.get('Count', 1)
@@ -312,7 +264,6 @@ def handle_rating(user_id, title, rating):
                 {"Title": title},
                 {"$set": {"Star": new_star, "Count": new_count}}
             )
-
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
