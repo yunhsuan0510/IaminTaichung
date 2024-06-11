@@ -204,7 +204,7 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input == "推薦":
         now = "推薦"
-         reply_message = TextSendMessage(
+        reply_message = TextSendMessage(
             text='請選擇您的所在區域',
             quick_reply=create_quick_reply_buttons()
         )
