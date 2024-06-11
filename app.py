@@ -69,7 +69,7 @@ def create_flex_message(data):
 
         # 確認電話號碼格式是否有效
         phone_text = TextComponent(text=f"電話：{phone}", wrap=True)
-        if phone and phone != "無電話" and phone.isdigit() and phone != "no phone":
+        if  phone != "無電話"  and phone != "no phone":
             phone_text = TextComponent(
                 text=f"電話：{phone}",
                 wrap=True,
