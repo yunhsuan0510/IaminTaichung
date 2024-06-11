@@ -233,7 +233,8 @@ def handle_rating(user_id, title, rating):
             # 計算新的評分
             new_count = count + 1
             new_star = (current_star * count + float(rating)) / new_count
-
+            new_star = round(new_star, 1)
+            
             # 更新數據庫中的評分和計數
             collection.update_one(
                 {"Title": title},
