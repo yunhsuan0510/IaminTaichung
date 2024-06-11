@@ -69,7 +69,7 @@ def create_flex_message(data):
 
         # 確認電話號碼格式是否有效
         phone_text = TextComponent(text=f"電話：{phone}", wrap=True)
-        if  phone != "無電話"  and phone != "no phone":
+        if phone != "無電話" and phone != "no phone":
             phone_text = TextComponent(
                 text=f"電話：{phone}",
                 wrap=True,
@@ -100,6 +100,42 @@ def create_flex_message(data):
                             style='link',
                             height='sm',
                             action=URIAction(label='查看地圖', uri=google_maps_link)
+                        ),
+                        BoxComponent(
+                            layout='horizontal',
+                            spacing='sm',
+                            contents=[
+                                ButtonComponent(
+                                    style='primary',
+                                    color='#FF0000',
+                                    height='sm',
+                                    action=PostbackAction(label='1分', data=f'rating=1&title={title}')
+                                ),
+                                ButtonComponent(
+                                    style='primary',
+                                    color='#FF7F00',
+                                    height='sm',
+                                    action=PostbackAction(label='2分', data=f'rating=2&title={title}')
+                                ),
+                                ButtonComponent(
+                                    style='primary',
+                                    color='#FFFF00',
+                                    height='sm',
+                                    action=PostbackAction(label='3分', data=f'rating=3&title={title}')
+                                ),
+                                ButtonComponent(
+                                    style='primary',
+                                    color='#7FFF00',
+                                    height='sm',
+                                    action=PostbackAction(label='4分', data=f'rating=4&title={title}')
+                                ),
+                                ButtonComponent(
+                                    style='primary',
+                                    color='#00FF00',
+                                    height='sm',
+                                    action=PostbackAction(label='5分', data=f'rating=5&title={title}')
+                                )
+                            ]
                         )
                     ])
                 ]
@@ -158,6 +194,18 @@ def handle_postback(event):
             )
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
+
+    elif data.startswith('rating='):
+        rating = data.split('&')[0].split('=')[1]
+        title = data.split('&')[1].split('=')[1]
+        # 處理評分邏輯，例如更新數據庫中的評分
+        handle_rating(user_id, title, rating)
+        reply_message = TextSendMessage(text=f"感謝您的評分！您給了 {title} {rating} 分。")
+        line_bot_api.reply_message(event.reply_token, reply_message)
+        
+def handle_rating(user_id, title, rating):
+    # 在此處理評分的邏輯，例如更新數據庫
+    pass
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
