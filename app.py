@@ -4,6 +4,8 @@ from pymongo import MongoClient, UpdateOne
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
+import requests
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
@@ -147,6 +149,39 @@ def create_flex_message(data):
 
     return FlexSendMessage(alt_text="資料庫查詢結果", contents=CarouselContainer(contents=bubbles))
 
+def get_weather_info(region):
+    url = f"https://weather.yam.com/{region}/臺中"
+    response = requests.get(url)
+    if response.status_code == 200:
+        html_content = response.text
+        soup = BeautifulSoup(html_content, 'html.parser')
+        weather_info = {}
+
+        img_tag = soup.find('div', class_='Wpic').find('img')
+        if img_tag:
+            img_url = img_tag['src']
+            full_img_url = requests.compat.urljoin(url, img_url)
+            weather_info['img'] = full_img_url
+        else:
+            print('未找到圖片標籤')
+
+        detail_section = soup.find('div', class_='detail')
+        if detail_section:
+            for p in detail_section.find_all('p'):
+                text = p.text.strip()
+                if "體感溫度" in text:
+                    weather_info['feels_like'] = text.split(":")[1].strip()
+                elif "降雨機率" in text:
+                    weather_info['rain_probability'] = text.split(":")[1].strip()
+                elif "紫外線" in text:
+                    weather_info['uv_index'] = text.split(":")[1].strip()
+                elif "空氣品質" in text:
+                    weather_info['air_quality'] = text.split(":")[1].strip()
+        return weather_info
+    else:
+        print(f"Failed to retrieve the page. Status code: {response.status_code}")
+        return None
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
@@ -162,10 +197,43 @@ def handle_message(event):
         region = user_region.get(user_id)
         user_category[user_id] = user_input
         if region:
-            # 從資料庫中獲取資料
-            items = get_random_items_from_db(user_input, region)
-            reply_message = create_flex_message(items)
-            line_bot_api.reply_message(event.reply_token, reply_message)
+            if user_input == "景點":
+                # 獲取天氣資訊
+                weather_info = get_weather_info(region)
+                if weather_info:
+                    flex_message = FlexSendMessage(
+                        alt_text="天氣資訊",
+                        contents={
+                            "type": "bubble",
+                            "hero": {
+                                "type": "image",
+                                "url": weather_info.get("img"),
+                                "size": "full",
+                                "aspect_ratio": "16:9",
+                                "aspect_mode": "cover"
+                            },
+                            "body": {
+                                "type": "box",
+                                "layout": "vertical",
+                                "contents": [
+                                    {"type": "text", "text": f"地區: {region}", "weight": "bold", "size": "lg"},
+                                    {"type": "text", "text": f"體感溫度: {weather_info.get('feels_like', 'N/A')}", "wrap": True},
+                                    {"type": "text", "text": f"降雨機率: {weather_info.get('rain_probability', 'N/A')}", "wrap": True},
+                                    {"type": "text", "text": f"紫外線: {weather_info.get('uv_index', 'N/A')}", "wrap": True},
+                                    {"type": "text", "text": f"空氣品質: {weather_info.get('air_quality', 'N/A')}", "wrap": True}
+                                ]
+                            }
+                        }
+                    )
+                    line_bot_api.reply_message(event.reply_token, flex_message)
+                else:
+                    reply_message = TextSendMessage(text="無法獲取天氣資訊")
+                    line_bot_api.reply_message(event.reply_token, reply_message)
+            else:
+                # 從資料庫中獲取資料
+                items = get_random_items_from_db(user_input, region)
+                reply_message = create_flex_message(items)
+                line_bot_api.reply_message(event.reply_token, reply_message)
         else:
             reply_message = TextSendMessage(text="請先選擇您的所在區域")
             line_bot_api.reply_message(event.reply_token, reply_message)
