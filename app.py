@@ -67,6 +67,14 @@ def create_flex_message(data):
         google_maps_link = item.get("Google Maps Link", "https://maps.google.com")
         image_link = item.get("Image Link", "")
 
+        phone_text = TextComponent(text=f"電話：{phone}", wrap=True)
+        if phone != "無電話" or phone != "no phone":
+            phone_text = TextComponent(
+                text=f"電話：{phone}", 
+                wrap=True, 
+                action=URIAction(uri=f"tel:{phone}")
+            )
+
         bubble = BubbleContainer(
             direction='ltr',
             hero=ImageComponent(
@@ -80,7 +88,7 @@ def create_flex_message(data):
                 contents=[
                     TextComponent(text=title, weight='bold', size='lg'),
                     BoxComponent(layout='vertical', margin='lg', spacing='sm', contents=[
-                        TextComponent(text=f"電話：{phone}", action=URIAction(uri=f"tel:{phone}")),
+                        phone_text,
                         TextComponent(text=f"地址：{address}", wrap=True),
                         TextComponent(text=f"營業時間：{business_hours}", wrap=True),
                         ButtonComponent(
@@ -95,6 +103,7 @@ def create_flex_message(data):
         bubbles.append(bubble)
 
     return FlexSendMessage(alt_text="資料庫查詢結果", contents=CarouselContainer(contents=bubbles))
+
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
