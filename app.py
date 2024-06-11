@@ -1,6 +1,6 @@
 from flask import Flask, request, abort
 import os
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
@@ -147,8 +147,6 @@ def create_flex_message(data):
 
     return FlexSendMessage(alt_text="資料庫查詢結果", contents=CarouselContainer(contents=bubbles))
 
-
-
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
@@ -206,8 +204,32 @@ def handle_postback(event):
         line_bot_api.reply_message(event.reply_token, reply_message)
         
 def handle_rating(user_id, title, rating):
-    # 在此處理評分的邏輯，例如更新數據庫
-    pass
+
+    # 獲取用戶選擇的分類和區域
+    category = user_category.get(user_id)
+    region = user_region.get(user_id)
+
+    # 連接到數據庫
+    db = get_database(category)
+    # 查找符合條件的文檔
+    collection = db[region]
+    
+    if category and region:
+
+        item = collection.find_one({"Title": title})
+
+        if item:
+            # 計算新的評分
+            new_count = item.get('Count', 1) + 1
+            current_star = item.get('Star', 0.0)
+            new_star = (current_star * item.get('Count', 1) + float(rating)) / new_count
+
+            # 更新數據庫中的評分和計數
+            collection.update_one(
+                {"Title": title},
+                {"$set": {"Star": new_star, "Count": new_count}}
+            )
+
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
