@@ -30,7 +30,7 @@ def callback():
 
 # 全局變數來保存用戶的區域選擇
 user_region = {}
-
+user_category = {}
 # 定義台中市區域列表
 taichung_regions = [
     '南區', '北區', '中區', '西區', '東區', '北屯區', '大里區', '烏日區',
@@ -96,7 +96,7 @@ def create_flex_message(data):
                     BoxComponent(layout='vertical', margin='lg', spacing='sm', contents=[
                         phone_text,
                         TextComponent(text=f"地址：{address}", wrap=True),
-                        TextComponent(text=f"評分:{star}", wrap=True),
+                        TextComponent(text=f"評分：{star}", wrap=True),
                         TextComponent(text=f"營業時間：{business_hours}", wrap=True),
                         ButtonComponent(
                             style='link',
@@ -160,6 +160,7 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
+        user_category[user_id] = user_input
         if region:
             # 從資料庫中獲取資料
             items = get_random_items_from_db(user_input, region)
@@ -180,7 +181,7 @@ def handle_postback(event):
     if data.startswith('region='):
         region = data.split('=')[1]
         user_region[user_id] = region
-
+        
         reply_message = TemplateSendMessage(
             alt_text='請選擇類別',
             template=ButtonsTemplate(
