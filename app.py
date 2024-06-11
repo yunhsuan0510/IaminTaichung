@@ -33,6 +33,7 @@ def callback():
 # 全局變數來保存用戶的區域選擇
 user_region = {}
 user_category = {}
+now = ""
 # 定義台中市區域列表
 taichung_regions = [
     '南區', '北區', '中區', '西區', '東區', '北屯區', '大里區', '烏日區',
@@ -58,14 +59,14 @@ def get_random_items_from_db(category, region):
     collection = db[region]
     random_items = collection.aggregate([{'$sample': {'size': 3}}])
     return list(random_items)
-
+    
 # 從資料庫中獲取前三高評分的項目
 def get_top_rated_items_from_db(category, region):
     db = get_database(category)
     collection = db[region]
     top_items = collection.find().sort('Star', -1).limit(3)
     return list(top_items)
-
+                
 def create_flex_message(data):
     bubbles = []
     for item in data:
@@ -154,7 +155,7 @@ def create_flex_message(data):
         )
         bubbles.append(bubble)
 
-    return FlexSendMessage(alt_text="資料庫查詢結果", contents=CarouselContainer(contents=bubbles))
+    return FlexSendMessage(alt_text="想選嗎都給你選", contents=CarouselContainer(contents=bubbles))
 
 def get_weather_info(region):
     url = f"https://weather.yam.com/{region}/臺中"
@@ -195,29 +196,15 @@ def handle_message(event):
     user_input = event.message.text
 
     if user_input == "驚喜":
+        now = "驚喜"
         reply_message = TextSendMessage(
             text='請選擇您的所在區域',
             quick_reply=create_quick_reply_buttons()
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input == "推薦":
-        reply_message = TemplateSendMessage(
-            alt_text='請選擇類別',
-            template=ButtonsTemplate(
-                title='請選擇服務項目',
-                text='請選擇您要找的是美食、點心還是景點',
-                actions=[
-                    MessageAction(label='美食', text='推薦美食'),
-                    MessageAction(label='點心', text='推薦點心'),
-                    MessageAction(label='景點', text='推薦景點')
-                ]
-            )
-        )
-        line_bot_api.reply_message(event.reply_token, reply_message)
-    elif user_input.startswith("推薦"):
-        category = user_input[2:]
-        user_category[user_id] = category
-        reply_message = TextSendMessage(
+        now = "推薦"
+         reply_message = TextSendMessage(
             text='請選擇您的所在區域',
             quick_reply=create_quick_reply_buttons()
         )
@@ -256,7 +243,10 @@ def handle_message(event):
                     )
                     line_bot_api.reply_message(event.reply_token, flex_message)
                     # 景點推薦的 Flex Message
-                    items = get_random_items_from_db(user_input, region)
+                    if now == "驚喜":
+                        items = get_random_items_from_db(user_input, region)
+                    elif now == "推薦":
+                        items = get_top_rated_items_from_db(user_input, region)
                     spots_flex_message = create_flex_message(items)
                     line_bot_api.push_message(user_id, spots_flex_message)
                 else:
@@ -264,14 +254,17 @@ def handle_message(event):
                     line_bot_api.reply_message(event.reply_token, reply_message)
             else:
                 # 從資料庫中獲取資料
-                items = get_random_items_from_db(user_input, region)
+                if now == "驚喜":
+                    items = get_random_items_from_db(user_input, region)
+                elif now == "推薦":
+                    items = get_top_rated_items_from_db(user_input, region)
                 reply_message = create_flex_message(items)
                 line_bot_api.reply_message(event.reply_token, reply_message)
         else:
             reply_message = TextSendMessage(text="請先選擇您的所在區域")
             line_bot_api.reply_message(event.reply_token, reply_message)
     else:
-        reply_message = TextSendMessage(text="請輸入 '驚喜' 或 '推薦' 來選擇您的所在區域或類別")
+        reply_message = TextSendMessage(text="請輸入 '驚喜' 或 '推薦' 來選擇您的所在區域")
         line_bot_api.reply_message(event.reply_token, reply_message)
 
 @handler.add(PostbackEvent)
@@ -283,26 +276,19 @@ def handle_postback(event):
         region = data.split('=')[1]
         user_region[user_id] = region
         
-        category = user_category.get(user_id)
-        if category and category.startswith("推薦"):
-            category = category[2:]
-            items = get_top_rated_items_from_db(category, region)
-            reply_message = create_flex_message(items)
-            line_bot_api.reply_message(event.reply_token, reply_message)
-        else:
-            reply_message = TemplateSendMessage(
-                alt_text='請選擇類別',
-                template=ButtonsTemplate(
-                    title='請選擇服務項目',
-                    text='請選擇您要找的是美食、點心還是景點',
-                    actions=[
-                        MessageAction(label='美食', text='美食'),
-                        MessageAction(label='點心', text='點心'),
-                        MessageAction(label='景點', text='景點')
-                    ]
-                )
+        reply_message = TemplateSendMessage(
+            alt_text='請選擇類別',
+            template=ButtonsTemplate(
+                title='請選擇服務項目',
+                text='請選擇您要找的是美食、點心還是景點',
+                actions=[
+                    MessageAction(label='美食', text='美食'),
+                    MessageAction(label='點心', text='點心'),
+                    MessageAction(label='景點', text='景點')
+                ]
             )
-            line_bot_api.reply_message(event.reply_token, reply_message)
+        )
+        line_bot_api.reply_message(event.reply_token, reply_message)
 
     elif data.startswith('rating='):
         rating = data.split('&')[0].split('=')[1]
