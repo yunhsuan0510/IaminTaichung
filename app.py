@@ -194,7 +194,7 @@ def get_weather_info(region):
 def handle_message(event):
     user_id = event.source.user_id
     user_input = event.message.text
-
+    global now
     if user_input == "驚喜":
         now = "驚喜"
         reply_message = TextSendMessage(
