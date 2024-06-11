@@ -109,31 +109,31 @@ def create_flex_message(data):
                                     style='primary',
                                     color='#FF0000',
                                     height='sm',
-                                    action=PostbackAction(label='1分', data=f'rating=1&title={title}')
+                                    action=PostbackAction(label='1', data=f'rating=1&title={title}')
                                 ),
                                 ButtonComponent(
                                     style='primary',
                                     color='#FF7F00',
                                     height='sm',
-                                    action=PostbackAction(label='2分', data=f'rating=2&title={title}')
+                                    action=PostbackAction(label='2', data=f'rating=2&title={title}')
                                 ),
                                 ButtonComponent(
                                     style='primary',
                                     color='#FFFF00',
                                     height='sm',
-                                    action=PostbackAction(label='3分', data=f'rating=3&title={title}')
+                                    action=PostbackAction(label='3', data=f'rating=3&title={title}')
                                 ),
                                 ButtonComponent(
                                     style='primary',
                                     color='#7FFF00',
                                     height='sm',
-                                    action=PostbackAction(label='4分', data=f'rating=4&title={title}')
+                                    action=PostbackAction(label='4', data=f'rating=4&title={title}')
                                 ),
                                 ButtonComponent(
                                     style='primary',
                                     color='#00FF00',
                                     height='sm',
-                                    action=PostbackAction(label='5分', data=f'rating=5&title={title}')
+                                    action=PostbackAction(label='5', data=f'rating=5&title={title}')
                                 )
                             ]
                         )
