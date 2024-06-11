@@ -65,6 +65,7 @@ def create_flex_message(data):
         address = item.get("Address", "無地址")
         business_hours = item.get("Business Hours", "無營業時間")
         google_maps_link = item.get("Google Maps Link", "https://maps.google.com")
+        star = item.get("Star", "0.0")
         image_link = item.get("Image Link", "")
 
         # 確認電話號碼格式是否有效
@@ -95,6 +96,7 @@ def create_flex_message(data):
                     BoxComponent(layout='vertical', margin='lg', spacing='sm', contents=[
                         phone_text,
                         TextComponent(text=f"地址：{address}", wrap=True),
+                        TextComponent(text=f"評分:{star}", wrap=True),
                         TextComponent(text=f"營業時間：{business_hours}", wrap=True),
                         ButtonComponent(
                             style='link',
