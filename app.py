@@ -226,6 +226,10 @@ def handle_message(event):
                         }
                     )
                     line_bot_api.reply_message(event.reply_token, flex_message)
+                    # 從資料庫中獲取資料
+                    items = get_random_items_from_db(user_input, region)
+                    reply_message = create_flex_message(items)
+                    line_bot_api.reply_message(event.reply_token, reply_message)
                 else:
                     reply_message = TextSendMessage(text="無法獲取天氣資訊")
                     line_bot_api.reply_message(event.reply_token, reply_message)
