@@ -67,13 +67,18 @@ def create_flex_message(data):
         google_maps_link = item.get("Google Maps Link", "https://maps.google.com")
         image_link = item.get("Image Link", "")
 
+        # 確認電話號碼格式是否有效
         phone_text = TextComponent(text=f"電話：{phone}", wrap=True)
-        if phone != "無電話" or phone != "no phone":
+        if phone and phone != "無電話" and phone.isdigit() and phone != "no phone":
             phone_text = TextComponent(
-                text=f"電話：{phone}", 
-                wrap=True, 
+                text=f"電話：{phone}",
+                wrap=True,
                 action=URIAction(uri=f"tel:{phone}")
             )
+
+        # 確認 Google Maps Link 是否有效
+        if not google_maps_link.startswith("http"):
+            google_maps_link = "https://maps.google.com"
 
         bubble = BubbleContainer(
             direction='ltr',
@@ -103,6 +108,7 @@ def create_flex_message(data):
         bubbles.append(bubble)
 
     return FlexSendMessage(alt_text="資料庫查詢結果", contents=CarouselContainer(contents=bubbles))
+
 
 
 @handler.add(MessageEvent, message=TextMessage)
