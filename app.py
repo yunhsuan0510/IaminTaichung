@@ -220,10 +220,19 @@ def handle_rating(user_id, title, rating):
         item = collection.find_one({"Title": title})
 
         if item:
-            # 計算新的評分
-            new_count = int(item.get('Count', 1)) + 1
+            # 確保 Count 是整數
+            count = item.get('Count', 1)
+            if isinstance(count, str):
+                count = int(float(count))  # 轉換字符串為浮點數，再轉為整數
+
+            # 確保 Star 是浮點數
             current_star = item.get('Star', 0.0)
-            new_star = (current_star * int(item.get('Count', 1)) + float(rating)) / new_count
+            if isinstance(current_star, str):
+                current_star = float(current_star)  # 轉換字符串為浮點數
+
+            # 計算新的評分
+            new_count = count + 1
+            new_star = (current_star * count + float(rating)) / new_count
 
             # 更新數據庫中的評分和計數
             collection.update_one(
