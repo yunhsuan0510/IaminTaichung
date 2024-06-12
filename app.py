@@ -267,22 +267,30 @@ def handle_message(event):
                         alt_text="天氣資訊",
                         contents={
                             "type": "bubble",
-                            "hero": {
-                                "type": "image",
-                                "url": weather_info.get("img"),
-                                "size": "full",
-                                "aspect_ratio": "16:9",
-                                "aspect_mode": "cover"
-                            },
                             "body": {
                                 "type": "box",
-                                "layout": "vertical",
+                                "layout": "horizontal",
                                 "contents": [
-                                    {"type": "text", "text": f"地區: {region}", "weight": "bold", "size": "lg"},
-                                    {"type": "text", "text": f"體感溫度: {weather_info.get('feels_like', 'N/A')}", "wrap": True},
-                                    {"type": "text", "text": f"降雨機率: {weather_info.get('rain_probability', 'N/A')}", "wrap": True},
-                                    {"type": "text", "text": f"紫外線: {weather_info.get('uv_index', 'N/A')}", "wrap": True},
-                                    {"type": "text", "text": f"空氣品質: {weather_info.get('air_quality', 'N/A')}", "wrap": True}
+                                    {
+                                        "type": "box",
+                                        "layout": "vertical",
+                                        "flex": 5,
+                                        "contents": [
+                                            {"type": "text", "text": f"{region}目前天氣狀況：", "weight": "bold", "size": "lg"},
+                                            {"type": "text", "text": f"體感溫度：{weather_info.get('feels_like', 'N/A')}", "wrap": True},
+                                            {"type": "text", "text": f"降雨機率：{weather_info.get('rain_probability', 'N/A')}", "wrap": True},
+                                            {"type": "text", "text": f"紫外線：{weather_info.get('uv_index', 'N/A')}", "wrap": True},
+                                            {"type": "text", "text": f"空氣品質：{weather_info.get('air_quality', 'N/A')}", "wrap": True}
+                                        ]
+                                    },
+                                    {
+                                        "type": "image",
+                                        "url": weather_info.get("img"),
+                                        "size": "full",
+                                        "aspect_ratio": "16:9",
+                                        "aspect_mode": "cover",
+                                        "flex": 3
+                                    }
                                 ]
                             }
                         }
