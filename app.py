@@ -73,12 +73,15 @@ def get_top_rated_items_from_db(category, region):
     return list(top_items)
 
 def chat_with_gpt(user_input):
-    response = openai.Completion.create(
-        engine="davinci-codex",
-        prompt=user_input,
-        max_tokens=150
+    response = openai.ChatCompletion.create(
+        model="gpt-4",  # Ensure you're using the correct model
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": user_input}
+        ]
     )
-    return response.choices[0].text.strip()
+    return response.choices[0].message['content']
+
 
 
 def create_flex_message(data):
@@ -237,18 +240,17 @@ def handle_message(event):
             ])
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
-    elif user_input == "離開":
-        user_chat_status[user_id] = False
-        reply_message = TextSendMessage(text="您已離開聊天模式。")
+    elif user_input.lower() == "離開":
+        now = ""
+        reply_message = TextSendMessage(text="已退出聊天模式。")
         line_bot_api.reply_message(event.reply_token, reply_message)
-    elif user_chat_status.get(user_id, False):
-        # 與 ChatGPT 進行對話
+    elif now == "chat":
         reply = chat_with_gpt(user_input)
         reply_message = TextSendMessage(text=reply)
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input == "聊天":
-        user_chat_status[user_id] = True
-        reply_message = TextSendMessage(text="您已進入聊天模式，輸入 '離開' 以結束聊天。")
+        now = "chat"
+        reply_message = TextSendMessage(text="進入聊天模式，請輸入您的訊息。")
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
