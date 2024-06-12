@@ -276,19 +276,19 @@ def handle_message(event):
                                         "layout": "vertical",
                                         "flex": 5,
                                         "contents": [
-                                            {"type": "text", "text": f"{region}目前天氣狀況：", "weight": "bold", "size": "lg"},
-                                            {"type": "text", "text": f"體感溫度：{weather_info.get('feels_like', 'N/A')}", "wrap": True},
-                                            {"type": "text", "text": f"降雨機率：{weather_info.get('rain_probability', 'N/A')}", "wrap": True},
-                                            {"type": "text", "text": f"紫外線：{weather_info.get('uv_index', 'N/A')}", "wrap": True},
-                                            {"type": "text", "text": f"空氣品質：{weather_info.get('air_quality', 'N/A')}", "wrap": True}
+                                            {"type": "text", "text": f"{region}目前天氣狀況：", "weight": "bold", "size": "md", "wrap": True},
+                                            {"type": "text", "text": f"體感溫度：{weather_info.get('feels_like', 'N/A')}", "wrap": True, "size": "sm"},
+                                            {"type": "text", "text": f"降雨機率：{weather_info.get('rain_probability', 'N/A')}", "wrap": True, "size": "sm"},
+                                            {"type": "text", "text": f"紫外線：{weather_info.get('uv_index', 'N/A')}", "wrap": True, "size": "sm"},
+                                            {"type": "text", "text": f"空氣品質：{weather_info.get('air_quality', 'N/A')}", "wrap": True, "size": "sm"}
                                         ]
                                     },
                                     {
                                         "type": "image",
                                         "url": weather_info.get("img"),
-                                        "size": "full",
-                                        "aspect_ratio": "16:9",
-                                        "aspect_mode": "cover",
+                                        "size": "md",
+                                        "aspect_ratio": "4:3",
+                                        "aspect_mode": "fit",
                                         "flex": 3
                                     }
                                 ]
