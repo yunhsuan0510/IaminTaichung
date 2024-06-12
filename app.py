@@ -1,6 +1,4 @@
 from flask import Flask, request, abort
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 import os
 from pymongo import MongoClient, UpdateOne
 from linebot import LineBotApi, WebhookHandler
@@ -72,20 +70,6 @@ def get_top_rated_items_from_db(category, region):
     collection = db[region]
     top_items = collection.find().sort('Star', -1).limit(3)
     return list(top_items)
-
-def chat_with_gpt(user_input):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # 使用最新且可用的模型名稱
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": user_input}
-        ]
-    )
-    return response.choices[0].message['content']
-
-
-
-
 
 def create_flex_message(data):
     bubbles = []
@@ -242,18 +226,6 @@ def handle_message(event):
                 QuickReplyButton(action=PostbackAction(label=str(i), data=f'new_rating={i}')) for i in range(1, 6)
             ])
         )
-        line_bot_api.reply_message(event.reply_token, reply_message)
-    elif user_input.lower() == "離開":
-        now = ""
-        reply_message = TextSendMessage(text="已退出聊天模式。")
-        line_bot_api.reply_message(event.reply_token, reply_message)
-    elif now == "chat":
-        reply = chat_with_gpt(user_input)
-        reply_message = TextSendMessage(text=reply)
-        line_bot_api.reply_message(event.reply_token, reply_message)
-    elif user_input == "聊天":
-        now = "chat"
-        reply_message = TextSendMessage(text="進入聊天模式，請輸入您的訊息。")
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
