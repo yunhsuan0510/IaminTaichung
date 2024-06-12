@@ -33,8 +33,7 @@ def callback():
 # 全局變數來保存用戶的區域選擇
 user_region = {}
 user_category = {}
-user_state = {}
-user_temp_data = {}
+new_data = {}
 now = ""
 # 定義台中市區域列表
 taichung_regions = [
@@ -196,7 +195,7 @@ def get_weather_info(region):
 def handle_message(event):
     user_id = event.source.user_id
     user_input = event.message.text
-    global now
+    global now, new_data
     if user_input == "驚喜":
         now = "驚喜"
         reply_message = TextSendMessage(
@@ -212,25 +211,17 @@ def handle_message(event):
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input == "新增":
-        user_state[user_id] = "wait_for_title"
-        reply_message = TextSendMessage(text="請輸入要新增的 Title")
+        now = "新增"
+        reply_message = TextSendMessage(text='請輸入項目標題')
         line_bot_api.reply_message(event.reply_token, reply_message)
-    elif user_state.get(user_id) == "wait_for_title":
-        user_temp_data[user_id] = {'title': user_input}
-        user_state[user_id] = "wait_for_rating"
-        reply_message = TemplateSendMessage(
-            alt_text='請選擇評分',
-            template=ButtonsTemplate(
-                title='請選擇評分',
-                text=f'請為 "{user_input}" 評分',
-                actions=[
-                    PostbackAction(label='1', data='rating=1&title=' + user_input),
-                    PostbackAction(label='2', data='rating=2&title=' + user_input),
-                    PostbackAction(label='3', data='rating=3&title=' + user_input),
-                    PostbackAction(label='4', data='rating=4&title=' + user_input),
-                    PostbackAction(label='5', data='rating=5&title=' + user_input)
-                ]
-            )
+    elif now == "新增" and user_input:
+        # 保存用戶輸入的標題
+        new_data[user_id] = {"Title": user_input}
+        reply_message = TextSendMessage(
+            text='請為項目評分',
+            quick_reply=QuickReply(items=[
+                QuickReplyButton(action=PostbackAction(label=str(i), data=f'new_rating={i}')) for i in range(1, 6)
+            ])
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input in ["美食", "點心", "景點"]:
@@ -290,6 +281,15 @@ def handle_message(event):
     else:
         reply_message = TextSendMessage(text="請輸入 '驚喜' 或 '推薦' 來選擇您的所在區域")
         line_bot_api.reply_message(event.reply_token, reply_message)
+        
+def send_to_specific_user(data):
+    specific_user_id = 'Ueb0d6dea2a95c12fdf716b078d624834'  # 替換為特定用戶的ID
+    title = data.get("Title", "無標題")
+    star = data.get("Star", "無評分")
+    
+    message = TextSendMessage(text=f"新增項目：\n標題：{title}\n評分：{star}")
+    line_bot_api.push_message(specific_user_id, message)
+
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
@@ -319,21 +319,18 @@ def handle_postback(event):
         title = data.split('&')[1].split('=')[1]
         # 處理評分邏輯，例如更新數據庫中的評分
         handle_rating(user_id, title, rating)
-        
-        # 發送給特定用戶
-        specific_user_id = "Ueb0d6dea2a95c12fdf716b078d624834"  # 替換為特定用戶的 ID
-        user_temp_data[user_id]['rating'] = rating
-        temp_data = user_temp_data[user_id]
-        reply_message = TextSendMessage(text=f"用戶 {user_id} 新增了一個項目: {temp_data['title']}，評分為 {temp_data['rating']}。")
-        line_bot_api.push_message(specific_user_id, reply_message)
-
-        # 清除暫存資料
-        user_temp_data.pop(user_id, None)
-        user_state[user_id] = None
-        
-        # 回覆用戶
         reply_message = TextSendMessage(text=f"感謝您的評分！您給了 {title} {rating} 分。")
         line_bot_api.reply_message(event.reply_token, reply_message)
+    elif data.startswith('new_rating='):
+        rating = data.split('=')[1]
+        if user_id in new_data:
+            new_data[user_id]["Star"] = rating
+            send_to_specific_user(new_data[user_id])
+            reply_message = TextSendMessage(text=f"已收到您的新增項目：{new_data[user_id]['Title']}，評分：{rating}")
+            line_bot_api.reply_message(event.reply_token, reply_message)
+        else:
+            reply_message = TextSendMessage(text="出現錯誤，請重新嘗試新增。")
+            line_bot_api.reply_message(event.reply_token, reply_message)
         
 def handle_rating(user_id, title, rating):
 
