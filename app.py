@@ -1,4 +1,6 @@
 from flask import Flask, request, abort
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import os
 from pymongo import MongoClient, UpdateOne
 from linebot import LineBotApi, WebhookHandler
@@ -9,7 +11,11 @@ from bs4 import BeautifulSoup
 import openai
 
 app = Flask(__name__)
-
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 # Channel Access Token
 line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
@@ -20,6 +26,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
+@limiter.limit("5 per minute")
 def callback():
     # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
