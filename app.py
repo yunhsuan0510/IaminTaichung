@@ -326,7 +326,7 @@ def handle_postback(event):
         if user_id in new_data:
             new_data[user_id]["Star"] = rating
             send_to_specific_user(new_data[user_id])
-            reply_message = TextSendMessage(text=f"已收到您的新增項目：{new_data[user_id]['Title']}，評分：{rating}")
+            reply_message = TextSendMessage(text=f"已收到您的新增項目：{new_data[user_id]['Title']}，評分：{rating}，感謝你的推薦!等待後臺更新資料")
             line_bot_api.reply_message(event.reply_token, reply_message)
         else:
             reply_message = TextSendMessage(text="出現錯誤，請重新嘗試新增。")
@@ -350,13 +350,9 @@ def handle_rating(user_id, title, rating):
         if item:
             # 確保 Count 是整數
             count = item.get('Count', 1)
-            if isinstance(count, str):
-                count = int(float(count))  # 轉換字符串為浮點數，再轉為整數
 
             # 確保 Star 是浮點數
             current_star = item.get('Star', 0.0)
-            if isinstance(current_star, str):
-                current_star = float(current_star)  # 轉換字符串為浮點數
 
             # 計算新的評分
             new_count = count + 1
