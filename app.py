@@ -73,14 +73,16 @@ def get_top_rated_items_from_db(category, region):
     return list(top_items)
 
 def chat_with_gpt(user_input):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",  # Ensure you're using the correct model
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": user_input}
-        ]
+    response = openai.Completion.create(
+        model="text-davinci-003",  # 使用正確且可用的模型名稱
+        prompt=user_input,
+        max_tokens=150,  # 你可以根據需求調整這個值
+        n=1,
+        stop=None,
+        temperature=0.7
     )
-    return response.choices[0].message['content']
+    return response.choices[0].text.strip()
+
 
 
 
