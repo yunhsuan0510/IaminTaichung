@@ -227,6 +227,7 @@ def handle_message(event):
             ])
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
+        now = ""
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
         user_category[user_id] = user_input
