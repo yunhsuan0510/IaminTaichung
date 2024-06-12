@@ -3,4 +3,4 @@ flask
 gunicorn
 pymongo
 bs4
-openai
+openai==0.28
