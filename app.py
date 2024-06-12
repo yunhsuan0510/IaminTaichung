@@ -6,6 +6,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
 import requests
 from bs4 import BeautifulSoup
+import openai
 
 app = Flask(__name__)
 
@@ -14,6 +15,8 @@ static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 # Channel Secret
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
+# OpenAI API Key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
@@ -34,6 +37,7 @@ def callback():
 user_region = {}
 user_category = {}
 new_data = {}
+user_chat_status = {}
 now = ""
 # 定義台中市區域列表
 taichung_regions = [
@@ -67,7 +71,16 @@ def get_top_rated_items_from_db(category, region):
     collection = db[region]
     top_items = collection.find().sort('Star', -1).limit(3)
     return list(top_items)
-                
+
+def chat_with_gpt(user_input):
+    response = openai.Completion.create(
+        engine="davinci-codex",
+        prompt=user_input,
+        max_tokens=150
+    )
+    return response.choices[0].text.strip()
+
+
 def create_flex_message(data):
     bubbles = []
     for item in data:
@@ -223,6 +236,19 @@ def handle_message(event):
                 QuickReplyButton(action=PostbackAction(label=str(i), data=f'new_rating={i}')) for i in range(1, 6)
             ])
         )
+        line_bot_api.reply_message(event.reply_token, reply_message)
+    elif user_input == "離開":
+        user_chat_status[user_id] = False
+        reply_message = TextSendMessage(text="您已離開聊天模式。")
+        line_bot_api.reply_message(event.reply_token, reply_message)
+    elif user_chat_status.get(user_id, False):
+        # 與 ChatGPT 進行對話
+        reply = chat_with_gpt(user_input)
+        reply_message = TextSendMessage(text=reply)
+        line_bot_api.reply_message(event.reply_token, reply_message)
+    elif user_input == "聊天":
+        user_chat_status[user_id] = True
+        reply_message = TextSendMessage(text="您已進入聊天模式，輸入 '離開' 以結束聊天。")
         line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
