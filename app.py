@@ -33,6 +33,8 @@ def callback():
 # 全局變數來保存用戶的區域選擇
 user_region = {}
 user_category = {}
+user_state = {}
+user_temp_data = {}
 now = ""
 # 定義台中市區域列表
 taichung_regions = [
@@ -209,6 +211,28 @@ def handle_message(event):
             quick_reply=create_quick_reply_buttons()
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
+    elif user_input == "新增":
+        user_state[user_id] = "wait_for_title"
+        reply_message = TextSendMessage(text="請輸入要新增的 Title")
+        line_bot_api.reply_message(event.reply_token, reply_message)
+    elif user_state.get(user_id) == "wait_for_title":
+        user_temp_data[user_id] = {'title': user_input}
+        user_state[user_id] = "wait_for_rating"
+        reply_message = TemplateSendMessage(
+            alt_text='請選擇評分',
+            template=ButtonsTemplate(
+                title='請選擇評分',
+                text=f'請為 "{user_input}" 評分',
+                actions=[
+                    PostbackAction(label='1', data='rating=1&title=' + user_input),
+                    PostbackAction(label='2', data='rating=2&title=' + user_input),
+                    PostbackAction(label='3', data='rating=3&title=' + user_input),
+                    PostbackAction(label='4', data='rating=4&title=' + user_input),
+                    PostbackAction(label='5', data='rating=5&title=' + user_input)
+                ]
+            )
+        )
+        line_bot_api.reply_message(event.reply_token, reply_message)
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
         user_category[user_id] = user_input
@@ -295,6 +319,19 @@ def handle_postback(event):
         title = data.split('&')[1].split('=')[1]
         # 處理評分邏輯，例如更新數據庫中的評分
         handle_rating(user_id, title, rating)
+        
+        # 發送給特定用戶
+        specific_user_id = "Ueb0d6dea2a95c12fdf716b078d624834"  # 替換為特定用戶的 ID
+        user_temp_data[user_id]['rating'] = rating
+        temp_data = user_temp_data[user_id]
+        reply_message = TextSendMessage(text=f"用戶 {user_id} 新增了一個項目: {temp_data['title']}，評分為 {temp_data['rating']}。")
+        line_bot_api.push_message(specific_user_id, reply_message)
+
+        # 清除暫存資料
+        user_temp_data.pop(user_id, None)
+        user_state[user_id] = None
+        
+        # 回覆用戶
         reply_message = TextSendMessage(text=f"感謝您的評分！您給了 {title} {rating} 分。")
         line_bot_api.reply_message(event.reply_token, reply_message)
         
