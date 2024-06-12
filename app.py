@@ -290,6 +290,12 @@ def send_to_specific_user(data):
     message = TextSendMessage(text=f"新增項目：\n標題：{title}\n評分：{star}")
     line_bot_api.push_message(specific_user_id, message)
 
+def send_to_specific_user2(category, region, title, rating):
+    specific_user_id = 'Ueb0d6dea2a95c12fdf716b078d624834'  # 替換為特定用戶的ID
+
+    
+    message = TextSendMessage(text=f"新增評分：\n類別:{category}\n區域:{region}\n標題：{title}\n評分：{rating}")
+    line_bot_api.push_message(specific_user_id, message)
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
@@ -337,7 +343,7 @@ def handle_rating(user_id, title, rating):
     # 獲取用戶選擇的分類和區域
     category = user_category.get(user_id)
     region = user_region.get(user_id)
-
+    
     # 連接到數據庫
     db = get_database(category)
     # 查找符合條件的文檔
@@ -348,6 +354,7 @@ def handle_rating(user_id, title, rating):
         item = collection.find_one({"Title": title})
 
         if item:
+            send_to_specific_user2(category, region, title, rating)
             # 確保 Count 是整數
             count = item.get('Count', 1)
 
