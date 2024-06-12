@@ -4,3 +4,4 @@ gunicorn
 pymongo
 bs4
 openai==0.28
+flask-limiter
