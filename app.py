@@ -401,15 +401,17 @@ def handle_postback(event):
             user_scores[user_id] += 1
 
         user_answers[user_id].append(choice)
-
+        
+        line_bot_api.reply_message(event.reply_token, reply_message)
+        
         if index + 1 < len(game_data[user_id]):
             next_question = create_game_question_message(game_data[user_id][index + 1], index + 1)
-            line_bot_api.reply_message(event.reply_token, next_question)
+            line_bot_api.push_message(user_id, next_question)
         else:
             final_score = user_scores[user_id]
             total_questions = len(game_data[user_id])
             score_message = f"遊戲結束！你的最終得分是 {final_score}/{total_questions}。"
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=score_message))
+            line_bot_api.push_message(user_id, TextSendMessage(text=score_message))
 
         
 def handle_rating(user_id, title, rating):
