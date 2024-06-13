@@ -6,6 +6,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
 import requests
 from bs4 import BeautifulSoup
+import random
 
 
 app = Flask(__name__)
