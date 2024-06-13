@@ -412,14 +412,16 @@ def handle_postback(event):
         else:
             final_score = user_scores[user_id] * 20
             total_questions = len(game_data[user_id])
-            if final_socore == 0:
+            if final_score == 0:
                 score_message = f"遊戲結束！你的最終得分是 {final_score}\n太誇張了吧。"
-            elif final_score == 20 or final_socre == 40:
+            elif final_score == 20 or final_score == 40:
                 score_message = f"遊戲結束！你的最終得分是 {final_score}\n可以多來台中旅遊。"
             elif final_score == 60 or final_score == 80:
                 score_message = f"遊戲結束！你的最終得分是 {final_score}\n離成為台中地頭蛇更進一步。"
-            elif final_socre == 100:
+            elif final_score == 100:
                 score_message = f"遊戲結束！你的最終得分是 {final_score}\n好厲害!不愧是臺中地頭蛇。"
+            else:
+                score_message = f"遊戲結束！你的最終得分是 {final_score}"
             line_bot_api.push_message(user_id, TextSendMessage(text=score_message))
 
         
