@@ -403,7 +403,8 @@ def handle_postback(event):
         user_answers[user_id].append(choice)
         
         # 發送選擇的答案
-        line_bot_api.reply_message(event.reply_token, choice)
+        choice_message = TextSendMessage(text=f"你選擇了: {choice}")
+        line_bot_api.reply_message(event.reply_token, choice_message)
         
         if index + 1 < len(game_data[user_id]):
             next_question = create_game_question_message(game_data[user_id][index + 1], index + 1)
