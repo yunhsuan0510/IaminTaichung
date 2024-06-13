@@ -350,6 +350,7 @@ def send_to_specific_user2(category, region, title, rating):
     line_bot_api.push_message(specific_user_id, message)
 
 @handler.add(PostbackEvent)
+@handler.add(PostbackEvent)
 def handle_postback(event):
     data = event.postback.data
     user_id = event.source.user_id
@@ -389,8 +390,8 @@ def handle_postback(event):
         else:
             reply_message = TextSendMessage(text="出現錯誤，請重新嘗試新增。")
             line_bot_api.reply_message(event.reply_token, reply_message)
-    elif postback_data.startswith('game_answer='):
-        index, choice = postback_data.split('&')
+    elif data.startswith('game_answer='):
+        index, choice = data.split('&')
         index = int(index.split('=')[1])
         choice = choice.split('=')[1]
         user_id = event.source.user_id
@@ -409,6 +410,7 @@ def handle_postback(event):
             total_questions = len(game_data[user_id])
             score_message = f"遊戲結束！你的最終得分是 {final_score}/{total_questions}。"
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=score_message))
+
         
 def handle_rating(user_id, title, rating):
 
