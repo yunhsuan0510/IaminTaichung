@@ -199,7 +199,7 @@ def get_weather_info(region):
         return None
 
 def get_game_questions():
-    db = get_database("game")
+    db = get_database("遊戲")
     collection = db["臺中知識王"]
     questions = list(collection.aggregate([{'$sample': {'size': 5}}]))
     return questions
