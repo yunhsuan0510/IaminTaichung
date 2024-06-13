@@ -6,7 +6,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import *
 import requests
 from bs4 import BeautifulSoup
-import openai
+
 
 app = Flask(__name__)
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
@@ -14,8 +14,7 @@ static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 # Channel Secret
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
-# OpenAI API Key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
@@ -38,6 +37,11 @@ user_category = {}
 new_data = {}
 user_chat_status = {}
 now = ""
+user_scores = {}
+question_index = {}
+user_answers = {}
+game_data = {}
+
 # 定義台中市區域列表
 taichung_regions = [
     '南區', '北區', '中區', '西區', '東區', '北屯區', '大里區', '烏日區',
@@ -194,6 +198,32 @@ def get_weather_info(region):
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return None
 
+def get_game_questions():
+    db = get_database("game")
+    collection = db["臺中知識王"]
+    questions = list(collection.aggregate([{'$sample': {'size': 5}}]))
+    return questions
+
+
+def create_game_question_message(question_data, index):
+    question_text = question_data['Question']
+    options = [question_data['A'], question_data['B'], question_data['C'], question_data['D']]
+    random.shuffle(options)
+
+    buttons = [
+        PostbackAction(label=options[i], data=f'game_answer={index}&choice={options[i]}')
+        for i in range(4)
+    ]
+
+    return TemplateSendMessage(
+        alt_text='臺中知識王問題',
+        template=ButtonsTemplate(
+            title=f'問題 {index + 1}',
+            text=question_text,
+            actions=buttons
+        )
+    )
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
@@ -228,6 +258,15 @@ def handle_message(event):
         )
         line_bot_api.reply_message(event.reply_token, reply_message)
         now = ""
+    elif user_input == "遊戲":
+        questions = get_game_questions()
+        game_data[user_id] = questions
+        user_scores[user_id] = 0
+        question_index[user_id] = 0
+        user_answers[user_id] = []
+        
+        first_question = create_game_question_message(questions[0], 0)
+        line_bot_api.reply_message(event.reply_token, first_question)
     elif user_input in ["美食", "點心", "景點"]:
         region = user_region.get(user_id)
         user_category[user_id] = user_input
@@ -349,6 +388,26 @@ def handle_postback(event):
         else:
             reply_message = TextSendMessage(text="出現錯誤，請重新嘗試新增。")
             line_bot_api.reply_message(event.reply_token, reply_message)
+    elif postback_data.startswith('game_answer='):
+        index, choice = postback_data.split('&')
+        index = int(index.split('=')[1])
+        choice = choice.split('=')[1]
+        user_id = event.source.user_id
+        correct_answer = game_data[user_id][index]['Answer']
+
+        if choice == correct_answer:
+            user_scores[user_id] += 1
+
+        user_answers[user_id].append(choice)
+
+        if index + 1 < len(game_data[user_id]):
+            next_question = create_game_question_message(game_data[user_id][index + 1], index + 1)
+            line_bot_api.reply_message(event.reply_token, next_question)
+        else:
+            final_score = user_scores[user_id]
+            total_questions = len(game_data[user_id])
+            score_message = f"遊戲結束！你的最終得分是 {final_score}/{total_questions}。"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=score_message))
         
 def handle_rating(user_id, title, rating):
 
